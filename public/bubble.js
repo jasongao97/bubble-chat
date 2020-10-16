@@ -5,8 +5,8 @@ class Bubble {
     this.video = video;
 
     // random start location
-    this.top = Math.random() * (window.innerWidth - 200);
-    this.left = Math.random() * (window.innerHeight - 200);
+    this.top = Math.random() * (window.innerHeight - 200);
+    this.left = Math.random() * (window.innerWidth - 200);
     this.speedX = 0;
     this.speedY = 0;
 
