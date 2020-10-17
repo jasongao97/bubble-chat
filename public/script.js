@@ -73,7 +73,13 @@ function setupSocket() {
       if (simplepeers[i].socket_id == data) {
         console.log("Removing simplepeer: " + i);
         simplepeers.splice(i, 1);
-        // Should also remove video from page
+      }
+    }
+    // remove video from page
+    for (let i = 0; i < bubbles.length; i++) {
+      if (bubbles[i].id == data) {
+        bubbles[i].remove();
+        bubbles.splice(i, 1);
       }
     }
   });

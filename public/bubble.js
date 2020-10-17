@@ -3,6 +3,7 @@
 class Bubble {
   constructor(video) {
     this.video = video;
+    this.id = video.id;
 
     // random start location
     this.top = Math.random() * (window.innerHeight - 200);
@@ -59,5 +60,10 @@ class Bubble {
     }
     // move
     this.top += this.speedY;
+  }
+
+  remove() {
+    document.body.removeChild(this.canvas);
+    document.body.removeChild(this.video);
   }
 }
