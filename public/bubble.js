@@ -23,6 +23,9 @@ class Bubble {
     // fisheye effect
     this.fisheye = new Fisheye(this.canvas);
     this.fisheye.setDistortion(10);
+
+    // animation
+    this.animating = false;
   }
 
   getLocation() {
@@ -33,8 +36,9 @@ class Bubble {
   }
 
   setLocation(location) {
-    this.top = location.top * (window.innerHeight - 200);
-    this.left = location.left * (window.innerWidth - 200);
+    this.nextTop = location.top * (window.innerHeight - 200);
+    this.nextLeft = location.left * (window.innerWidth - 200);
+    this.animating = true;
   }
 
   draw() {
@@ -48,6 +52,16 @@ class Bubble {
     this.canvas.style.left = this.left + "px";
     this.canvas.style.top = this.top + "px";
     this.fisheye.draw(this.video);
+
+    // moving to the next location smoothly
+    if (this.animating) {
+      this.top += (this.nextTop - this.top) / 4;
+      this.left += (this.nextLeft - this.left) / 4;
+
+      if (Math.abs(this.top - this.nextTop) < 1 && Math.abs(this.left - this.nextLeft) < 1) {
+        this.animating = false;
+      }
+    }
   }
 
   moveX() {

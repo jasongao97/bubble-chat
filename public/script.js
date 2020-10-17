@@ -150,18 +150,18 @@ function setupSocket() {
     }
   });
 
-  socket.on("updateState", ({id, data}) => {
+  socket.on("updateState", ({ id, data }) => {
     for (let i = 0; i < simplepeers.length; i++) {
       if (simplepeers[i].socket_id === id) {
-        const thebubble = bubbles.find(e => e.id === id)
+        const thebubble = bubbles.find((e) => e.id === id);
         if (thebubble) {
-          thebubble.setLocation(data.location)
-          thebubble.rotating = data.rotating
+          thebubble.setLocation(data.location);
+          thebubble.rotating = data.rotating;
         }
         break;
       }
     }
-  })
+  });
 }
 
 function draw() {
@@ -222,9 +222,9 @@ function detectFace() {
 function updateState() {
   const data = {
     location: mybubble.getLocation(),
-    rotating: mybubble.rotating
-  }
-  socket.emit('updateState', data)
+    rotating: mybubble.rotating,
+  };
+  socket.emit("updateState", data);
   setTimeout(updateState, 200);
 }
 
