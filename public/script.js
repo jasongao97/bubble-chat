@@ -1,6 +1,7 @@
 /* global Bubble, faceapi */
 
 let simplepeers = [];
+let mybubble;
 let bubbles = [];
 var socket;
 var mystream;
@@ -37,12 +38,9 @@ function initCapture() {
       // Wait for the stream to load enough to play
       video.onloadedmetadata = function (e) {
         video.play();
-        bubbles.push(new Bubble(video));
 
         // Now setup socket
         setupSocket();
-        draw();
-        detectFace();
       };
     })
     .catch(function (err) {
@@ -60,6 +58,14 @@ function setupSocket() {
 
     // Tell the server we want a list of the other users
     socket.emit("list");
+  });
+
+  socket.on("init", function (location) {
+    let video = document.getElementById("myvideo");
+    mybubble = new Bubble(video, location);
+    draw();
+    detectFace();
+    updateState();
   });
 
   socket.on("disconnect", function (data) {
@@ -85,12 +91,18 @@ function setupSocket() {
 
   // Receive listresults from server
   socket.on("listresults", function (data) {
-    console.log(data);
+    // console.log(data);
     for (let i = 0; i < data.length; i++) {
       // Make sure it's not us
-      if (data[i] != socket.id) {
+      if (data[i].id != socket.id) {
         // create a new simplepeer and we'll be the "initiator"
-        let simplepeer = new SimplePeerWrapper(true, data[i], socket, mystream);
+        let simplepeer = new SimplePeerWrapper(
+          true,
+          data[i].id,
+          socket,
+          mystream,
+          data[i].location
+        );
 
         // Push into our array
         simplepeers.push(simplepeer);
@@ -112,7 +124,8 @@ function setupSocket() {
       if (simplepeers[i].socket_id == from) {
         console.log("Found right object");
         // Give that simplepeer the signal
-        simplepeers[i].inputsignal(data);
+        simplepeers[i].inputsignal(data.signal);
+        simplepeers[i].location = data.location;
         found = true;
         break;
       }
@@ -120,19 +133,41 @@ function setupSocket() {
     if (!found) {
       console.log("Never found right simplepeer object");
       // Let's create it then, we won't be the "initiator"
-      let simplepeer = new SimplePeerWrapper(false, from, socket, mystream);
+      console.log("location", data.location);
+      let simplepeer = new SimplePeerWrapper(
+        false,
+        from,
+        socket,
+        mystream,
+        data.location
+      );
 
       // Push into our array
       simplepeers.push(simplepeer);
 
       // Tell the new simplepeer that signal
-      simplepeer.inputsignal(data);
+      simplepeer.inputsignal(data.signal);
     }
   });
+
+  socket.on("updateState", ({id, data}) => {
+    for (let i = 0; i < simplepeers.length; i++) {
+      if (simplepeers[i].socket_id === id) {
+        const thebubble = bubbles.find(e => e.id === id)
+        if (thebubble) {
+          thebubble.setLocation(data.location)
+          thebubble.rotating = data.rotating
+        }
+        break;
+      }
+    }
+  })
 }
 
 function draw() {
   // const people = document.getElementsByTagName("video");
+
+  mybubble.draw();
 
   for (let i = 0; i < bubbles.length; i++) {
     bubbles[i].draw();
@@ -143,7 +178,7 @@ function draw() {
 
 function detectFace() {
   faceapi
-    .detectAllFaces(bubbles[0].video, new faceapi.TinyFaceDetectorOptions())
+    .detectAllFaces(mybubble.video, new faceapi.TinyFaceDetectorOptions())
     .withFaceLandmarks()
     .then((detections) => {
       if (detections.length > 0) {
@@ -152,11 +187,11 @@ function detectFace() {
 
         // nose [30]
         const nose = marks[30];
-        const { videoWidth, videoHeight } = bubbles[0].video;
+        const { videoWidth, videoHeight } = mybubble.video;
         const offsetX = videoWidth / 2 - nose.x;
         const offsetY = nose.y - videoHeight / 2;
-        bubbles[0].speedX = (offsetX / videoWidth) * 10;
-        bubbles[0].speedY = (offsetY / videoHeight) * 10;
+        mybubble.speedX = (offsetX / videoWidth) * 10;
+        mybubble.speedY = (offsetY / videoHeight) * 10;
 
         // lips [62] [66]
         const upperLip = marks[62];
@@ -166,32 +201,43 @@ function detectFace() {
             Math.pow(upperLip.y - lowerLip.y, 2)
         );
         const nlDistance = Math.sqrt(
-          Math.pow(nose.x - lowerLip.x, 2) +
-            Math.pow(nose.y - lowerLip.y, 2)
+          Math.pow(nose.x - lowerLip.x, 2) + Math.pow(nose.y - lowerLip.y, 2)
         );
 
         // mouth open
         if (ulDistance / nlDistance > 0.3) {
-          bubbles[0].rotating = true;
+          mybubble.rotating = true;
         } else {
-          bubbles[0].rotating = false;
+          mybubble.rotating = false;
         }
       } else {
-        bubbles[0].speedX = 0;
-        bubbles[0].speedY = 0;
+        mybubble.speedX = 0;
+        mybubble.speedY = 0;
       }
     });
 
   setTimeout(detectFace, 100);
 }
 
+function updateState() {
+  const data = {
+    location: mybubble.getLocation(),
+    rotating: mybubble.rotating
+  }
+  socket.emit('updateState', data)
+  setTimeout(updateState, 200);
+}
+
 // A wrapper for simplepeer as we need a bit more than it provides
 class SimplePeerWrapper {
-  constructor(initiator, socket_id, socket, stream) {
+  constructor(initiator, socket_id, socket, stream, location) {
     this.simplepeer = new SimplePeer({
       initiator: initiator,
       trickle: false,
     });
+
+    // Their locations
+    this.location = location;
 
     // Their socket id, our unique id for them
     this.socket_id = socket_id;
@@ -203,7 +249,11 @@ class SimplePeerWrapper {
     this.stream = stream;
 
     // simplepeer generates signals which need to be sent across socket
-    this.simplepeer.on("signal", (data) => {
+    this.simplepeer.on("signal", (signal) => {
+      const data = {
+        signal,
+        location: mybubble.getLocation(),
+      };
       this.socket.emit("signal", this.socket_id, this.socket.id, data);
     });
 
@@ -233,7 +283,8 @@ class SimplePeerWrapper {
       };
 
       // new Bubble
-      let bubble = new Bubble(ovideo);
+      console.log("hahalocation", this.location);
+      let bubble = new Bubble(ovideo, this.location);
       bubbles.push(bubble);
       document.body.appendChild(ovideo);
     });

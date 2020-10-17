@@ -26,61 +26,83 @@ let peers = [];
 
 // WebSocket Portion
 // WebSockets work with the HTTP server
-var io = require('socket.io').listen(httpServer);
+var io = require("socket.io").listen(httpServer);
 
 // Register a callback function to run when we have an individual connection
 // This is run for each individual user that connects
-io.sockets.on('connection', 
+io.sockets.on(
+  "connection",
 
-	// We are given a websocket object in our function
-	function (socket) {
-	
-		peers.push({socket: socket});
-		console.log("We have a new client: " + socket.id + " peers length: " + peers.length);
-		
-		socket.on('list', function() {
-			let ids = [];
-			for (let i = 0; i < peers.length; i++) {
-				ids.push(peers[i].socket.id);
-			}
-			console.log("ids length: " + ids.length);
-			socket.emit('listresults', ids);			
-		});
-		
-		// Relay signals back and forth
-		socket.on('signal', (to, from, data) => {
-			console.log("SIGNAL", to, data);
-			let found = false;
-			for (let i = 0; i < peers.length; i++) {
-				console.log(peers[i].socket.id, to);
-				if (peers[i].socket.id == to) {
-					console.log("Found Peer, sending signal");
-					peers[i].socket.emit('signal', to, from, data);
-					found = true;
-					break;
-				}				
-			}	
-			if (!found) {
-				console.log("never found peer");
-			}
-		});
-		
-		//	socket.on("call-user", data => {
-		//    socket.to(data.to).emit("call-made", {
-		//      offer: data.offer,
-		//      socket: socket.id
-		//    });
-		//  });
-		
-		socket.on('disconnect', function() {
-			console.log("Client has disconnected " + socket.id);
-			for (let i = 0; i < peers.length; i++) {
-				if (peers[i].socket.id == socket.id) {
-					peers.splice(i,1);
-				} else {
-					peers[i].socket.emit('peer_disconnect', socket.id);
-				}
-			}			
-		});
-	}
+  // We are given a websocket object in our function
+  function (socket) {
+    const location = {
+      top: Math.random(),
+      left: Math.random(),
+    };
+
+    socket.emit("init", location);
+
+    peers.push({ socket, location });
+    console.log(
+      "We have a new client: " + socket.id + " peers length: " + peers.length
+    );
+
+    socket.on("list", function () {
+      let ids = [];
+      for (let i = 0; i < peers.length; i++) {
+        ids.push({
+          id: peers[i].socket.id,
+          location: peers[i].location
+        });
+      }
+      console.log("ids length: " + ids.length);
+      socket.emit("listresults", ids);
+    });
+
+    // Relay signals back and forth
+    socket.on("signal", (to, from, data) => {
+      console.log("SIGNAL", to, data);
+      let found = false;
+      for (let i = 0; i < peers.length; i++) {
+        console.log(peers[i].socket.id, to);
+        if (peers[i].socket.id == to) {
+          console.log("Found Peer, sending signal");
+          peers[i].socket.emit("signal", to, from, data);
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        console.log("never found peer");
+      }
+    });
+
+    // Update state of bubble: location, rotate
+    socket.on("updateState", (data) => {
+      for (let i = 0; i < peers.length; i++) {
+        if (peers[i].socket.id === socket.id && data.location) {
+          peers[i].location = data.location
+        }
+      }
+      socket.broadcast.emit("updateState", { id: socket.id, data })
+    })
+
+    //	socket.on("call-user", data => {
+    //    socket.to(data.to).emit("call-made", {
+    //      offer: data.offer,
+    //      socket: socket.id
+    //    });
+    //  });
+
+    socket.on("disconnect", function () {
+      console.log("Client has disconnected " + socket.id);
+      for (let i = 0; i < peers.length; i++) {
+        if (peers[i].socket.id == socket.id) {
+          peers.splice(i, 1);
+        } else {
+          peers[i].socket.emit("peer_disconnect", socket.id);
+        }
+      }
+    });
+  }
 );

@@ -1,13 +1,13 @@
 /* global Fisheye */
 
 class Bubble {
-  constructor(video) {
+  constructor(video, location) {
     this.video = video;
     this.id = video.id;
 
     // random start location
-    this.top = Math.random() * (window.innerHeight - 200);
-    this.left = Math.random() * (window.innerWidth - 200);
+    this.top = location.top * (window.innerHeight - 200);
+    this.left = location.left * (window.innerWidth - 200);
     this.speedX = 0;
     this.speedY = 0;
 
@@ -23,6 +23,18 @@ class Bubble {
     // fisheye effect
     this.fisheye = new Fisheye(this.canvas);
     this.fisheye.setDistortion(10);
+  }
+
+  getLocation() {
+    return {
+      top: this.top / (window.innerHeight - 200),
+      left: this.left / (window.innerWidth - 200),
+    };
+  }
+
+  setLocation(location) {
+    this.top = location.top * (window.innerHeight - 200);
+    this.left = location.left * (window.innerWidth - 200);
   }
 
   draw() {
