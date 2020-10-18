@@ -6,6 +6,7 @@
     <title>Bubble Chat</title>
     <script src="script.js"></script>
     <script src="bubble.js"></script>
+    <script defer src="background.js"></script>
 
     <!-- import simplepear -->
     <script src="lib/simplepeer.min.js"></script>
@@ -19,6 +20,9 @@
     <!-- import socket.io -->
     <script src="/socket.io/socket.io.js"></script>
 
+    <!-- import p5.js -->
+    <script src="lib/p5.min.js"></script>
+
     <style>
       body {
         margin: 0;
@@ -26,20 +30,37 @@
         height: 100vh;
         width: 100vw;
         overflow: hidden;
-        background-color: black;
+        /*         background-color: black; */
+/*         background-image: url("https://cdn.glitch.com/61822e8c-6341-4a03-81be-ffc327f2f144%2Fthumbnails%2F01.jpg?1603028816148");
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover; */
       }
 
       video {
         display: none;
       }
 
-      canvas {
-        border-radius: 50%;
+      .bubble {
         position: absolute;
-        transform: rotateY(180deg);
+        height: 200px;
+        width: 200px;
       }
 
-      canvas.rotating {
+      .bubble > img {
+        transform: translateY(-200px);
+        height: 200px;
+        width: 200px;
+        z-index: 10;
+      }
+
+      .bubble > canvas {
+        border-radius: 50%;
+        transform: rotateY(180deg);
+        z-index: 1;
+      }
+
+      .bubble.rotating > canvas {
         animation: rotate 4s infinite linear;
       }
 

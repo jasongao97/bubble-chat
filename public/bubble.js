@@ -13,16 +13,25 @@ class Bubble {
 
     // rotating
     this.rotating = false;
-
+    
+    // whole block
+    this.div = document.createElement("div");
+    this.div.classList.add("bubble");
+    document.body.appendChild(this.div);
+    
     // canvas for rendering
-    this.canvas = document.createElement("canvas");
-    this.canvas.width = 200;
-    this.canvas.height = 200;
-    document.body.appendChild(this.canvas);
+    const canvas = document.createElement("canvas");
+    canvas.width = 200;
+    canvas.height = 200;
+    this.div.appendChild(canvas);
+    
+    const image = new Image();
+    image.src = 'https://cdn.glitch.com/61822e8c-6341-4a03-81be-ffc327f2f144%2F02.png?v=1603028815325';
+    this.div.appendChild(image);
 
     // fisheye effect
-    this.fisheye = new Fisheye(this.canvas);
-    this.fisheye.setDistortion(10);
+    this.fisheye = new Fisheye(canvas);
+    this.fisheye.setDistortion(-5);
 
     // animation
     this.animating = false;
@@ -43,14 +52,14 @@ class Bubble {
 
   draw() {
     if (this.rotating) {
-      this.canvas.className = "rotating";
+      this.div.classList.add("rotating");
     } else {
-      this.canvas.className = "";
+      this.div.classList.remove("rotating");
       this.moveX();
       this.moveY();
     }
-    this.canvas.style.left = this.left + "px";
-    this.canvas.style.top = this.top + "px";
+    this.div.style.left = this.left + "px";
+    this.div.style.top = this.top + "px";
     this.fisheye.draw(this.video);
 
     // moving to the next location smoothly
@@ -89,7 +98,7 @@ class Bubble {
   }
 
   remove() {
-    document.body.removeChild(this.canvas);
+    document.body.removeChild(this.div);
     document.body.removeChild(this.video);
   }
 }

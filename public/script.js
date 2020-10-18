@@ -63,6 +63,7 @@ function setupSocket() {
   socket.on("init", function (location) {
     let video = document.getElementById("myvideo");
     mybubble = new Bubble(video, location);
+    mybubble.div.style.zIndex = 99;
     draw();
     detectFace();
     updateState();
